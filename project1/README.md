@@ -1,6 +1,11 @@
 # Linux 作業系統 project1
 
 ## 前置準備
+### 小組名單 - 第24組
+> **113522118 韓志鴻  
+> 113522096 李婕綾  
+> 113522089 邱奕鋒   
+> 111521052 徐浩軒**  
 ### 作業題目網址
 [Project 1](https://staff.csie.ncu.edu.tw/hsufh/COURSES/FALL2024/linux_project_1.html)
 
@@ -122,7 +127,7 @@ cp -v /boot/config-$(uname -r) .config
 # 將剛剛複製過來的config自動更新此kernel(即linux-5.15.137)的.config。使用 localmodconfig比較快。過程問你什麼都直按Enter就好
 make localmodconfig
 ```
-3. 在開始編譯之前，要先在cmd輸入以下兩個指令：
+3. 在開始編譯之前，要先在cmd輸入以下4個指令：
 ```bash
 # 刪除憑證
 scripts/config --disable SYSTEM_TRUSTED_KEYS
@@ -131,6 +136,14 @@ scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
 ```
 
+否則將會出現以下錯誤訊息:  
+:::danger
+sed: can't read modules.order: No such file or directory  
+make: *** [Makefile:1544: _modinst_pre] Error 2
+:::
+
+原因據其他參考網站是說設定檔內是Debian 官方當初編譯kernel時憑證的路徑,若是直接澤會
+報錯,因此這邊取消使用憑證,並將值設為空字串。
 
 4. 開始編譯
 ```bash!
@@ -162,7 +175,7 @@ sudo reboot
 vim /etc/default/grub
 ```
 將GRUB_TIMEOUT_STYLE改成menu、GRUB_TIMEOUT改成-1，然後**再回到上述第5點的重新啟動**。
-![image](https://hackmd.io/_uploads/SyHTZ0rZJx.png)
+![image](https://hackmd.io/_uploads/SyHTZ0rZJx.png)  
 :::
 6. 重新開機後，檢查版本
 ```bash
@@ -321,11 +334,11 @@ What follows is an example code which you can use to see the effect of copy-on-w
 #include <sys/wait.h> // 提供 wait 函數
 
 // ANSI 控制碼定義
-#define RED_TEXT "\033[31m"     // 紅色
-#define YELLOW_TEXT "\033[33m"  // 黃色
-#define GREEN_TEXT "\033[32m"   // 綠色
-#define BLUE_TEXT "\033[34m"    // 藍色
-#define RESET_TEXT "\033[0m"    // 重設顏色
+#define RED "\033[31m"     // 紅色
+#define YELLOW "\033[33m"  // 黃色
+#define GREEN "\033[32m"   // 綠色
+#define BLUE "\033[34m"    // 藍色
+#define RESET "\033[0m"    // 重設顏色
 
 // Syscall 449 的接口
 void *my_get_physical_addresses(void *vaddr) {
@@ -338,40 +351,40 @@ int main()
 {
     void *parent_use, *child_use;
 
-    printf("================================Before Fork=======================================\n");
+    printf("=================================Before Fork========================================\n");
     parent_use = my_get_physical_addresses(&global_a);
-    printf("global_a: " RED_TEXT "%d" RESET_TEXT "  |  pid = " YELLOW_TEXT "%d" RESET_TEXT "\n", global_a, getpid());
-    printf("Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN_TEXT, (void *)&global_a, RESET_TEXT, BLUE_TEXT, parent_use, RESET_TEXT);
-    printf("==================================================================================\n\n");
+    printf("global_a: " RED "%d" RESET "  |  pid = " YELLOW "%d" RESET "\n", global_a, getpid());
+    printf("Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN, (void *)&global_a, RESET, BLUE, parent_use, RESET);
+    printf("====================================================================================\n\n");
 
     if (fork())
     { /*parent code*/
-        printf("vvvvvvvvvvvvvvvvvvvvvvvvvvv  After Fork by parent  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+        printf("vvvvvvvvvvvvvvvvvvvvvvvvvvvv  After Fork by parent  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
         parent_use = my_get_physical_addresses(&global_a);
-        printf("******* parent global_a: " RED_TEXT "%d" RESET_TEXT "  |  pid = " YELLOW_TEXT "%d" RESET_TEXT "\n", global_a, getpid());
-        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN_TEXT, (void *)&global_a, RESET_TEXT, BLUE_TEXT, parent_use, RESET_TEXT);
-        printf("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n");
+        printf("******* ）parent global_a: " RED "%d" RESET "  |  pid = " YELLOW "%d" RESET "\n", global_a, getpid());
+        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN, (void *)&global_a, RESET, BLUE, parent_use, RESET);
+        printf("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n\n");
         wait(NULL);  // 等待子進程結束
     }
     else
     { /*child code*/
         sleep(1); // 睡1秒鐘，讓printf更整齊
-        printf("lllllllllllllllllllllllllll  After Fork by child  llllllllllllllllllllllllllllllll\n");
+        printf("llllllllllllllllllllllllllll  After Fork by child  lllllllllllllllllllllllllllllllll\n");
         child_use = my_get_physical_addresses(&global_a);
-        printf("******* child global_a: " RED_TEXT "%d" RESET_TEXT "  |  pid = " YELLOW_TEXT "%d" RESET_TEXT "\n", global_a, getpid());
-        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN_TEXT, (void *)&global_a, RESET_TEXT, BLUE_TEXT, child_use, RESET_TEXT);
-        printf("llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll\n");
-        printf("__________________________________________________________________________________\n\n");
+        printf("******* child global_a: " RED "%d" RESET "  |  pid = " YELLOW "%d" RESET "\n", global_a, getpid());
+        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN, (void *)&global_a, RESET, BLUE, child_use, RESET);
+        printf("llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll\n");
+        printf("____________________________________________________________________________________\n\n");
 
         /*----------------------- trigger CoW (Copy on Write) -----------------------------------*/
         global_a = 789;
 
-        printf("iiiiiiiiiiiiiiiiiiiiiiiiiii  Test copy on write in child  iiiiiiiiiiiiiiiiiiiiiiii\n");
+        printf("iiiiiiiiiiiiiiiiiiiiiiiiiiii  Test copy on write in child  iiiiiiiiiiiiiiiiiiiiiiiii\n");
         child_use = my_get_physical_addresses(&global_a);
-        printf("******* child global_a: " RED_TEXT "%d" RESET_TEXT "  |  pid = " YELLOW_TEXT "%d" RESET_TEXT "\n", global_a, getpid());
-        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN_TEXT, (void *)&global_a, RESET_TEXT, BLUE_TEXT, child_use, RESET_TEXT);
-        printf("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n");
-        printf("__________________________________________________________________________________\n\n");
+        printf("******* child global_a: " RED "%d" RESET "  |  pid = " YELLOW "%d" RESET "\n", global_a, getpid());
+        printf("******* Offset of logical address:[%s%p%s]   Physical address:[%s%p%s]\n", GREEN, (void *)&global_a, RESET, BLUE, child_use, RESET);
+        printf("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n");
+        printf("____________________________________________________________________________________\n\n");
     }
     return 0;
 }
@@ -468,6 +481,7 @@ int main() {
 3. 在 Linux 作業系統中，分頁管理（paging）是惰性分配的（lazy allocation）。意思是當宣告一個大陣列時，**記憶體並不會馬上為陣列的每個元素分配實體頁面，而是當實際存取這些元素時，系統才會將對應的虛擬頁面載入並映射到實體頁面。**
     * **a[0]可以找的到實體位址**：原因是當定義一個全域變數，它通常位於「靜態資料區」（Static Data Segment），這部分記憶體在程式啟動時會被初始化。因為是全域變數，在程式啟動時就會為該變數分配記憶體頁面，並將其對應到實體位址。因此a[0] 的實體位址可以馬上取得，即使a[0]尚未被存取。
     * **a[1999999] 沒有實體位址**：對於這麼大的陣列來說，作業系統雖然預先分配了一部分頁面，但可能並不會馬上分配所有頁面，特別是對於像 a[1999999] 這樣遠端的元素。如果你從未對該元素進行存取，它對應的頁面仍然可能處於未分配狀態。此時kernel space就會無法查找PTE內部的值。
+    * 根據上圖，在**a[1999999]** 給值之後，就找的到實體位址，其上一格陣列和往前數143格也有實體位址，但當往前找第144格(a[1999999 - 144])時卻又找不到實體位址，直到給予值後可以發現，每1024個間隔就會必須賦予值才能取得該位置的實體位址。這是因為一旦有尚未分配實體位址的陣列寫入資料後，其所屬的page才會被載入。**page的大小是4KB，且int陣列每一格是4bytes，因此可以說每次載入1個page等同載入1024格(4096 / 4 = 1024)陣列至實體記憶體**，因此才會有每隔1024格陣列後無法取得實體位址，必須再寫入資料後才能取得實體位址的現象。
 
 ---
 
@@ -501,7 +515,7 @@ int main() {
    c. 因此<font color=red>**要確實取得PFN的話，則要再多and一個PTE_PFN_MASK(如問題圖中的第2行)**</font>，然後再照常加上offset就好了。  
    d. 然而在trace的過程中發現以下pte_pfn()函式：  
    ![image](https://hackmd.io/_uploads/BkC622EW1x.png)  
-其中的protnone_mask代表取得權限位，一般情況下根據bootlin顯示是回傳0：  
+其中的protnone_mask代表取得權限位，一般情況下根據[bootlin](https://elixir.bootlin.com/linux/v5.15.137/source/arch/x86/include/asm/pgtable-2level.h#L100)顯示是回傳0：  
    ![image](https://hackmd.io/_uploads/HJVzkTE-yg.png)  
    實測結果也是回傳0：  
    ![image](https://hackmd.io/_uploads/SJLoGp4bkx.png)  
