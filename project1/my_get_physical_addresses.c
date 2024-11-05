@@ -16,7 +16,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     pmd_t *pmd;                      // 頁中間目錄 (Page Middle Directory) 的指標
     pte_t *pte;                      // 頁表項 (Page Table Entry) 的指標
 
-    // 從使用者空間複製虛擬地址到內核空間
+    // 從使用者空間複製虛擬地址到內核空間，使用copy_from_user可以在拷貝user資料的同時檢查安全性
     if (copy_from_user(&virt_addr, usr_ptr, sizeof(unsigned long))) {
         pr_err("Failed to copy virtual address from user space\n\n");
         return -EFAULT;  // 返回錯誤碼 -EFAULT，表示無效地址
@@ -69,7 +69,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     phys_addr = (pte_pfn(*pte) << PAGE_SHIFT) + (virt_addr & ~PAGE_MASK);
     pr_info("Physical address: 0x%lx\n\n", phys_addr);  // 印出實體地址
 
-    // 將實體地址複製回使用者空間
+    // 將實體地址複製回使用者空間，使用copy_to_user可以在拷貝kernel資料的同時檢查安全性
     if (copy_to_user(usr_ptr, &phys_addr, sizeof(unsigned long))) {
         pr_err("Failed to copy physical address to user space\n\n");
         return -EFAULT;
