@@ -14,7 +14,7 @@
 * Kernel 版本： 5.15.137
 
 ### 想要用superuser權限的vscode開發的話
-:::info
+:::info  
 ```
 sudo code --no-sandbox --user-data-dir
 ```
@@ -62,7 +62,7 @@ mkdir mycall
 ```
 
 1. 在mycall底下建立my_get_physical_addresses.c並新增以下code，之後記得存檔
-:::info
+:::info  
 [虛擬地址(virtual address)轉實體地址(physical address)程式碼](#Requirement：虛擬地址virtual-address轉實體地址physical-address)
 :::
 
@@ -137,7 +137,7 @@ scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
 ```
 
 否則將會出現以下錯誤訊息:  
-:::danger
+:::danger  
 sed: can't read modules.order: No such file or directory  
 make: *** [Makefile:1544: _modinst_pre] Error 2
 :::
@@ -168,7 +168,7 @@ sudo reboot
 ![image](https://hackmd.io/_uploads/BJwMqhIg1l.png)  
 ![image](https://hackmd.io/_uploads/HJkN9nUxkg.png)  
 
-:::info
+:::info  
 補充：
 若reboot沒有出現以上選單畫面需輸入
 ```
@@ -182,7 +182,7 @@ vim /etc/default/grub
 uname -rs
 ```
 
-:::info
+:::info  
 若以上過程有任何錯誤或想要有其他修改，可執行以下指令清除make編譯後產生的文件，並回到 **4. 開始編譯**
 ```b
 # 刪除make -j12執行後所產生的文件
@@ -305,7 +305,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
 下圖顯示從虛擬地址轉成實體地址過程中的各種值，若有任何層轉換出現問題則顯示該層Invalid。
 ![image](https://hackmd.io/_uploads/Hy5S5xSZ1g.png)  
 
-:::info
+:::info  
 **想查看kernel訊息等相關指令(如上述執行結果)的話可輸入以下指令**
 ```bash
 # 查看kernel訊息
@@ -390,7 +390,7 @@ int main()
 }
 ```
 
-:::info
+:::info  
 **編譯與執行的指令如下，或是直接vscode右上角的執行按鍵**
 ![image](https://hackmd.io/_uploads/ryWrHie-kx.png)
 
