@@ -176,7 +176,7 @@ vim /etc/default/grub
 ```
 將GRUB_TIMEOUT_STYLE改成menu、GRUB_TIMEOUT改成-1，然後**再回到上述第5點的重新啟動**。
 ![image](https://hackmd.io/_uploads/SyHTZ0rZJx.png)  
-:::
+:::  
 6. 重新開機後，檢查版本
 ```bash
 uname -rs
