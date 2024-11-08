@@ -61,7 +61,7 @@ cd /usr/src/linux-5.15.137/
 mkdir mycall
 ```
 
-1. 在mycall底下建立my_get_physical_addresses.c並新增以下code，之後記得存檔
+1. 在mycall底下建立my_get_physical_addresses.c並新增以下code，之後記得存檔  
 :::info  
 [虛擬地址(virtual address)轉實體地址(physical address)程式碼](#Requirement：虛擬地址virtual-address轉實體地址physical-address)
 :::
@@ -72,7 +72,7 @@ obj-y := my_get_physical_addresses.o # 將my_get_physical_addresses.o編入kerne
 ```
 3. **Makefile是一種用來自動化編譯過程的配置檔案，通常與 make 工具搭配使用**。Makefile 定義了如何編譯和鏈接程式碼，以生成可執行檔、庫或其他輸出，並可以設定不同的編譯規則和依賴關係。
 4. 以上Makefile指令中：
-    * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被 內嵌（linked statically） 到內核映像(kernel image)中。
+    * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被內嵌（linked statically）到內核映像(kernel image)中。
     * <font color=red>:=</font>是賦值運算符，意思是將右側的值（在此例中是 my_get_physical_addresses.o）賦給左側變數（即 obj-y）。
     * <font color=red>my_get_physical_addresses.o</font>是一個目標文件，它由相應的源文件（通常是 my_get_physical_addresses.c）經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
 
@@ -96,7 +96,7 @@ asmlinkage long sys_my_get_physical_addresses(unsigned long __user *usr_ptr);
 ```
 3. **asmlinkage**的意思是告訴編譯器，這個函數的參數是通過**stack**傳遞的，而不是像普通內核函數那樣通過寄存器傳遞。在 Linux 系統調用中，參數必須從用戶空間（user space）傳遞到內核空間（kernel space），並使用stack來傳遞參數。使用 asmlinkage 確保系統調用能正確接收這些參數，並能跨平台運行。基本上要寫syscall的話都要前綴這個關鍵詞。
 4. **long**是函數的返回類型，表示該函數將返回一個 long 整數。
-5. **sys_my_get_physical_addresses**是函數的名稱，表明這是一個名為 sys_my_get_physical_addresses 的系統調用。根據命名慣例，sys_ 前綴通常用於標識內核中的系統調用。這個特定的系統調用的功能是獲取物理地址，具體功能將在函數的實現中定義。
+5. **sys_my_get_physical_addresses**是函數的名稱，表明這是一個系統調用。根據命名慣例，sys_ 前綴通常用於標識內核中的系統調用。這個特定的系統調用的功能是獲取物理地址，具體功能將在函數的實現中定義。
 6. **unsigned long __user *usr_ptr**是函數的參數。其中 __user 修飾符表示這個pointer指向user space的內存。通過這個pointer，系統調用可以訪問user space提供的數據。在kernel中任何訪問user space的數據使用 __user 修飾符可以避免潛在的安全問題。
 
 ### 將syscall加入到kernel的syscall table
@@ -107,9 +107,9 @@ asmlinkage long sys_my_get_physical_addresses(unsigned long __user *usr_ptr);
 ```
 3. 該指令意義如下：
     * **449**是系統調用編號。(編號可自訂，但注意不要和其他syscall重複)
-    * **common**是類型或分類。這通常是用來表示系統調用的類型或屬性。在這個上下文中，common 表示這個系統調用是通用的，可能適用於多個不同的架構或情況。
-    * **my_get_physical_addresses**是用戶空間(user space)接口名稱。這是用戶空間中調用的系統調用名稱。當應用程序需要訪問這個系統調用時，它會使用這個名稱來進行調用。這個名稱通常用於用戶空間的函數庫中，應用程序可以通過它來執行系統調用。
-    * **sys_my_get_physical_addresses**是內核空間(kernel space)實現名稱。這是實際在內核中實現的系統調用函數的名稱。這個函數處理來自用戶空間的請求，並執行相應的操作。
+    * **common**是類型或分類。這通常是用來表示系統調用的類型或屬性。common 表示這個系統調用是通用的，可能適用於多個不同的架構或情況。
+    * **my_get_physical_addresses**是用戶空間(user space)接口名稱。這是user space中調用的系統調用名稱。當應用程序需要訪問這個系統調用時，它會使用這個名稱來進行調用。
+    * **sys_my_get_physical_addresses**是內核空間(kernel space)實現名稱。這是實際在內核中實現的系統調用函數名稱。此函數處理來自user space的請求，並執行相應的操作。
 
 ### 編譯kernel
 1. 首先先清理上次編譯(如果有)時產生的各種編譯過程中生成的文件，以便用於全新的編譯或重新配置內核。
@@ -142,8 +142,8 @@ sed: can't read modules.order: No such file or directory
 make: *** [Makefile:1544: _modinst_pre] Error 2
 :::
 
-原因據其他參考網站是說設定檔內是Debian 官方當初編譯kernel時憑證的路徑,若是直接澤會
-報錯,因此這邊取消使用憑證,並將值設為空字串。
+原因據其他參考網站是說設定檔內是Debian官方當初編譯kernel時憑證的路徑，若是直接編譯會
+報錯，因此這邊取消使用憑證，並將值設為空字串。
 
 4. 開始編譯
 ```bash!
@@ -219,7 +219,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     pmd_t *pmd;                      // 頁中間目錄 (Page Middle Directory) 的指標
     pte_t *pte;                      // 頁表項 (Page Table Entry) 的指標
 
-    // 從使用者空間複製虛擬地址到內核空間
+    // 從使用者空間複製虛擬地址到內核空間，使用copy_from_user可以在拷貝user資料的同時檢查安全性
     if (copy_from_user(&virt_addr, usr_ptr, sizeof(unsigned long))) {
         pr_err("Failed to copy virtual address from user space\n");
         return -EFAULT;  // 返回錯誤碼 -EFAULT，表示無效地址
@@ -233,7 +233,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     pr_info("PGD: %p\n", pgd);
     if (pgd_none(*pgd) || pgd_bad(*pgd)) {  // 檢查 PGD 是否為空或無效
         pr_err("Invalid PGD\n");
-        return -EFAULT;               // 返回錯誤碼 -EFAULT
+        return -EFAULT;
     }
 
     // 取得 P4D (Page 4 Directory) 頁 4 目錄
@@ -272,7 +272,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     phys_addr = (pte_pfn(*pte) << PAGE_SHIFT) + (virt_addr & ~PAGE_MASK);
     pr_info("Physical address: 0x%lx\n\n", phys_addr);  // 印出實體地址
 
-    // 將實體地址複製回使用者空間
+    // 將實體地址複製回使用者空間，使用copy_to_user可以在拷貝kernel資料的同時檢查安全性
     if (copy_to_user(usr_ptr, &phys_addr, sizeof(unsigned long))) {
         pr_err("Failed to copy physical address to user space\n");
         return -EFAULT;
@@ -288,7 +288,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
 1. current->mm存有PGD的虛擬位址，並且CR3指向PGD的起始實體位址。
 2. 在x86-64的5-level架構中，**虛擬地址內指向PGD、P4D、PUD、PMD、PTE的page table各有9 bits，最後的offset有12 bits**。其中5-level和4-level的差別在於多了P4D，且PGD和P4D的值相同。
 3. 一開始CR3指向PGD table基地址，加上虛擬記憶體中對應PGD的地址後，就會指向PGD table中的某一格，該格存放的是下一層某個P4D的基地址，接著該地址再加上虛擬位址中對應P4D的地址後，就能得到下層某個PUD的基地址，後續以此類推查找。
-4. 最後會查找到PTE（Page Table Entry，頁表項），其內容包含的是映射到實體位址中的PFN（Page Frame Number，頁框號）。PFN 指的是物理內存中的頁框號，並指向實體位址中對應的頁框（Page Frame）。
+4. 最後會查找到PTE（Page Table Entry，頁表項），其內容包含的是映射到實體位址中的PFN（Page Frame Number，頁框號）。**PFN 指的是實體記憶體中的頁框號，並指向實體位址中對應的頁框（Page Frame）**。
 5. <font color=red>**實體位址 = (pte_pfn(*pte) << PAGE_SHIFT) + (virt_addr & ~PAGE_MASK)**</font>  
     * **pte_pfn(*pte)**：即從PTE查找得到PFN。
     * PAGE_SHIFT：常數，固定為12。
@@ -480,8 +480,8 @@ int main() {
 ![image](https://hackmd.io/_uploads/r16KiSB-kg.png)  
 3. 在 Linux 作業系統中，分頁管理（paging）是惰性分配的（lazy allocation）。意思是當宣告一個大陣列時，**記憶體並不會馬上為陣列的每個元素分配實體頁面，而是當實際存取這些元素時，系統才會將對應的虛擬頁面載入並映射到實體頁面。**
     * **a[0]可以找的到實體位址**：原因是當定義一個全域變數，它通常位於「靜態資料區」（Static Data Segment），這部分記憶體在程式啟動時會被初始化。因為是全域變數，在程式啟動時就會為該變數分配記憶體頁面，並將其對應到實體位址。因此a[0] 的實體位址可以馬上取得，即使a[0]尚未被存取。
-    * **a[1999999] 沒有實體位址**：對於這麼大的陣列來說，作業系統雖然預先分配了一部分頁面，但可能並不會馬上分配所有頁面，特別是對於像 a[1999999] 這樣遠端的元素。如果你從未對該元素進行存取，它對應的頁面仍然可能處於未分配狀態。此時kernel space就會無法查找PTE內部的值。
-    * 根據上圖，在**a[1999999]** 給值之後，就找的到實體位址，其上一格陣列和往前數143格也有實體位址，但當往前找第144格(a[1999999 - 144])時卻又找不到實體位址。之後可以發現每1024個間隔就會必須賦予值才能取得該位置的實體位址。這是因為一旦有尚未分配實體位址的陣列寫入資料後，其所屬的page才會被載入。**page的大小是4KB，且int陣列每一格是4bytes，因此可以說每次載入1個page等同載入1024格(4096 / 4 = 1024)陣列至實體記憶體**，因此才會有每隔1024格陣列後無法取得實體位址，必須再寫入資料後才能取得實體位址的現象。
+    * **a[1999999] 沒有實體位址**：對這麼大的陣列來說，作業系統雖然預先分配一部分頁面，但可能並不會馬上分配所有頁面，特別是對於像 a[1999999] 這樣遠端的元素。如果從未對該元素進行存取，它對應的頁面仍然可能處於未分配狀態。此時kernel space就會無法查找PTE內部的值。
+    * 根據上圖，在**a[1999999]** 給值之後，就找的到實體位址，其上一格陣列和往前數143格也有實體位址，但當往前找第144格(a[1999999 - 144])時卻又找不到實體位址。之後可以發現**每1024個間隔就會必須賦予值才能取得該位置的實體位址**。這是因為一旦有尚未分配實體位址的陣列寫入資料後，其所屬的page才會被載入。**page的大小是4KB，且int陣列每一格是4bytes，因此可以說每次載入1個page等同載入(4096 / 4 = 1024)格陣列至實體記憶體**，所以才會有每隔1024格陣列後無法取得實體位址，必須再寫入資料後才能取得實體位址的現象。
 
 ---
 
@@ -519,7 +519,7 @@ int main() {
    ![image](https://hackmd.io/_uploads/HJVzkTE-yg.png)  
    實測結果也是回傳0：  
    ![image](https://hackmd.io/_uploads/SJLoGp4bkx.png)  
-   這也意味著**在pte_pfn()當中，pfn ^= protnone_mask(pfn)的結果不變，因為等同和0做XOR**。所以**pte_pfn()和原先問題中的第1行寫法只差在多一個向右移PAGE_SHIFT位(12位)後再回傳真正的PFN而已**，因此要取得實體位址的話，<font color=red>**可以改寫成問題圖中的第3行寫法，使用pte_pfn()後再向左移12位後再加上offset即可**</font>，同樣也能得出和第2行寫法一樣的實體位址。
+   這也意味著**在pte_pfn()當中，pfn ^= protnone_mask(pfn)的結果不變，因為等同和0做XOR**。所以**pte_pfn()和原先問題中的第1行寫法只差在多一個向右移PAGE_SHIFT位(12位)後再回傳真正的PFN而已**，因此要取得實體位址的話，<font color=red>**可以改寫成問題圖中的第3行寫法，使用pte_pfn()並向左移12位後再加上offset即可**</font>，同樣也能得出和第2行寫法一樣的實體位址。
 
 ---
 
