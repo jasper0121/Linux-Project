@@ -30,7 +30,7 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     pr_info("PGD: %p\n", pgd);
     if (pgd_none(*pgd) || pgd_bad(*pgd)) {  // 檢查 PGD 是否為空或無效
         pr_err("Invalid PGD\n\n");
-        return -EFAULT;               // 返回錯誤碼 -EFAULT
+        return -EFAULT;
     }
 
     // 取得 P4D (Page 4 Directory) 頁 4 目錄
