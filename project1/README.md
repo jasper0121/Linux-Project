@@ -10,8 +10,10 @@
 [Project 1](https://staff.csie.ncu.edu.tw/hsufh/COURSES/FALL2024/linux_project_1.html)
 
 ### 系統環境
-* 作業系統： ubuntu 22.04
-* Kernel 版本： 5.15.137
+* 虛擬機器：VMware Workstation Pro
+* 作業系統：ubuntu 22.04
+* Kernel 版本：5.15.137
+* 記憶體：16GB
 
 ### 想要用superuser權限的vscode開發的話
 :::info  
@@ -70,11 +72,11 @@ mkdir mycall
 ```b
 obj-y := my_get_physical_addresses.o # 將my_get_physical_addresses.o編入kernel
 ```
-3. **Makefile是一種用來自動化編譯過程的配置檔案，通常與 make 工具搭配使用**。Makefile 定義了如何編譯和鏈接程式碼，以生成可執行檔、庫或其他輸出，並可以設定不同的編譯規則和依賴關係。
+3. **Makefile是一種用來自動化編譯過程的配置檔案，通常與make工具搭配使用**。Makefile定義如何編譯和鏈接程式碼，以生成可執行檔或其他輸出，並可設定不同的編譯規則和依賴關係。
 4. 以上Makefile指令中：
-    * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被內嵌（linked statically）到內核映像(kernel image)中。
-    * <font color=red>:=</font>是賦值運算符，意思是將右側的值（在此例中是 my_get_physical_addresses.o）賦給左側變數（即 obj-y）。
-    * <font color=red>my_get_physical_addresses.o</font>是一個目標文件，它由相應的源文件（通常是 my_get_physical_addresses.c）經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
+    * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被內嵌(linked statically)到內核映像(kernel image)中。
+    * <font color=red>:=</font>是賦值運算符，意思是將右側的值(在此例中是 my_get_physical_addresses.o)賦給左側變數(即 obj-y)。
+    * <font color=red>my_get_physical_addresses.o</font>是一個目標文件，它由相應的源文件(通常是 my_get_physical_addresses.c)經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
 
 ### 修改linux-5.15.137本身的Makefile
 1. 回到/usr/src/linux-5.15.137並找到其底下的Makefile。
@@ -169,8 +171,7 @@ sudo reboot
 ![image](https://hackmd.io/_uploads/HJkN9nUxkg.png)  
 
 :::info  
-補充：
-若reboot沒有出現以上選單畫面需輸入
+補充：若reboot沒有出現以上選單畫面需輸入
 ```
 vim /etc/default/grub
 ```
@@ -183,7 +184,7 @@ uname -rs
 ```
 
 :::info  
-若以上過程有任何錯誤或想要有其他修改，可執行以下指令清除make編譯後產生的文件，並回到 **4. 開始編譯**
+若以上過程有任何錯誤或想要有其他修改，可執行以下指令清除make編譯後產生的文件，並回到 **4. 開始編譯**。
 ```b
 # 刪除make -j12執行後所產生的文件
 make clean
@@ -212,7 +213,7 @@ make clean
 SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     unsigned long virt_addr;         // 儲存從使用者空間傳入的虛擬地址
     unsigned long phys_addr = 0;     // 儲存計算出來的實體地址
-    struct mm_struct *mm = current->mm;  // 獲取當前進程的內存描述符，用於訪問內存映射
+    struct mm_struct *mm = current->mm;  // 獲取當前進程的內存描述符（memory descriptor)，用於訪問內存映射
     pgd_t *pgd;                      // 頁全局目錄 (Page Global Directory) 的指標
     p4d_t *p4d;                      // 頁 4 目錄 (Page 4 Directory) 的指標
     pud_t *pud;                      // 頁上層目錄 (Page Upper Directory) 的指標
@@ -294,15 +295,16 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     * PAGE_SHIFT：常數，固定為12。
     * PAGE_MASK = 0xfffffffffffff000，故 ~PAGE_MASK = 0xfff。
     * **(virt_addr & ~PAGE_MASK) = offset**，其結果為保留虛擬位址的後12個bits，即保留16進位地址的後3碼。
-    * 也就是說，**實體位址的值(二進位) = PFN向左移12 bits後，再加上虛擬位址的後12個bits**。因此**在十六進位表示下，虛擬位址和實體位址的後3碼會相同**。  
+    * 也就是說，**實體位址的值(二進位) = PFN向左移12 bits後，再加上虛擬位址的後12個bits**，因此**在十六進位表示下，虛擬位址和實體位址的後3碼會相同**。  
 6. __pte_pfn(*pte)__ v.s __pte_val(*pte)__
     * **pte_pfn(*pte)**： 這個function是一個專門從 PTE 中提取 PFN 的function，可以確保只獲取正確的 PFN，而不會受到低位控制位的影響。
     * **pte_val(*pte)**：這個function會將整個 PTE 數值提取出來，但 PTE 中包含了低位的控制位，這會導致後面計算的 page address錯誤。
     * PTE架構圖  
     ![image](https://0dr3f.github.io/images/Pasted%20image%2020240925104151.png)
 
+
 ### 執行結果
-下圖顯示從虛擬地址轉成實體地址過程中的各種值，若有任何層轉換出現問題則顯示該層Invalid。
+下圖顯示從虛擬地址轉成實體地址過程中的各種基址，若有任何層轉換出現問題則顯示Invalid。
 ![image](https://hackmd.io/_uploads/Hy5S5xSZ1g.png)  
 
 :::info  
@@ -349,7 +351,7 @@ int global_a = 123;  // global variable
 
 int main()
 {
-    void *parent_use, *child_use;
+    void *parent_use, *child_use; // 用來儲存回傳的physical_addresses
 
     printf("=================================Before Fork========================================\n");
     parent_use = my_get_physical_addresses(&global_a);
@@ -415,7 +417,7 @@ gcc -o Question1 Question1.c
 
 ---
 
-## Question 2：Demand paging & Page Fault
+## Question 2：Demand paging 需求分頁
 :::spoiler 題目敘述
 What follows is an example code which you can use to check whether a loader loads all data of a process before executing it.
 :::
@@ -480,8 +482,8 @@ int main() {
 ![image](https://hackmd.io/_uploads/r16KiSB-kg.png)  
 3. 在 Linux 作業系統中，分頁管理（paging）是惰性分配的（lazy allocation）。意思是當宣告一個大陣列時，**記憶體並不會馬上為陣列的每個元素分配實體頁面，而是當實際存取這些元素時，系統才會將對應的虛擬頁面載入並映射到實體頁面。**
     * **a[0]可以找的到實體位址**：原因是當定義一個全域變數，它通常位於「靜態資料區」（Static Data Segment），這部分記憶體在程式啟動時會被初始化。因為是全域變數，在程式啟動時就會為該變數分配記憶體頁面，並將其對應到實體位址。因此a[0] 的實體位址可以馬上取得，即使a[0]尚未被存取。
-    * **a[1999999] 沒有實體位址**：對這麼大的陣列來說，作業系統雖然預先分配一部分頁面，但可能並不會馬上分配所有頁面，特別是對於像 a[1999999] 這樣遠端的元素。如果從未對該元素進行存取，它對應的頁面仍然可能處於未分配狀態。此時kernel space就會無法查找PTE內部的值。
-    * 根據上圖，在**a[1999999]** 給值之後，就找的到實體位址，其上一格陣列和往前數143格也有實體位址，但當往前找第144格(a[1999999 - 144])時卻又找不到實體位址。之後可以發現**每1024個間隔就會必須賦予值才能取得該位置的實體位址**。這是因為一旦有尚未分配實體位址的陣列寫入資料後，其所屬的page才會被載入。**page的大小是4KB，且int陣列每一格是4bytes，因此可以說每次載入1個page等同載入(4096 / 4 = 1024)格陣列至實體記憶體**，所以才會有每隔1024格陣列後無法取得實體位址，必須再寫入資料後才能取得實體位址的現象。
+    * **a[1999999] 沒有實體位址**：對這麼大的陣列來說，作業系統雖然預先分配一部分頁面，但並不會馬上分配所有頁面，特別是對於像 a[1999999] 這樣遠端的元素。如果從未對該元素進行存取，它對應的頁面仍然可能處於未分配狀態。此時kernel space就會無法查找PTE內部的值。
+    * 根據上圖，在**a[1999999]** 給值之後，就找的到實體位址，其上一格陣列和往前數143格也有實體位址，但當往前找第144格(a[1999999 - 144])時卻又找不到實體位址。之後可以發現**每1024個間隔就會必須賦予值才能取得該位置的實體位址**。這是因為觸發了page fault，一旦有尚未分配實體位址的陣列寫入資料後，其所屬的page才會被載入。**page的大小是4KB，且int陣列每一格是4bytes，因此可以說每次載入1個page等同載入(4096 / 4 = 1024)格陣列至實體記憶體**，所以才會有每隔1024格陣列後無法取得實體位址，必須再寫入資料後才能取得實體位址的現象。
 
 ---
 
@@ -511,7 +513,7 @@ int main() {
    ![image](https://hackmd.io/_uploads/SkPO7hEWkg.png)  
    繼續往下追查發現：  
    ![image](https://hackmd.io/_uploads/HkERE3EWJl.png)  
-   雖然native_pte_val()最後回傳的pte.pte只是unsigned long型態，但往下發現pte_flags()函式回傳的是native_pte_val(pte) & PTE_FLAGS_MASK，意味著**從pte裡面取flags出來，綜合在網路上找其他資料說pte_val()回傳的值還包括flags和權限位之類的東西，證實pte_val()回傳的東西確實除了PFN外還包含其他東西。**  
+   雖然native_pte_val()最後回傳的pte.pte只是unsigned long型態，但往下發現pte_flags()函式回傳的是native_pte_val(pte) & PTE_FLAGS_MASK，意味著**從pte裡面取flags出來，綜合在網路上找其他資料說pte_val()回傳的值還包括flags和權限位之類的東西，證實pte_val()回傳的東西確實除了PFN外還包含其他東西**，而實際上是包含了最高位的NX位，所以才會出現0x8開頭。
    c. 因此<font color=red>**要確實取得PFN的話，則要再多and一個PTE_PFN_MASK(如問題圖中的第2行)**</font>，然後再照常加上offset就好了。  
    d. 然而在trace的過程中發現以下pte_pfn()函式：  
    ![image](https://hackmd.io/_uploads/BkC622EW1x.png)  
@@ -528,9 +530,12 @@ int main() {
 [Kernel 的替換 & syscall 的添加](https://satin-eyebrow-f76.notion.site/Kernel-syscall-3ec38210bb1f4d289850c549def29f9f)  
 [Linux 核心 Copy On Write 實作機制](https://hackmd.io/@linD026/Linux-kernel-COW-Copy-on-Write)  
 [作業系統CH9 Virtual Memory Management](https://hackmd.io/@Chang-Chia-Chi/OS-CH9)  
+[OS筆記-Chapter 9: Virtual Memory](https://hackmd.io/@Kipper/Hy9rmmHXD)
 [一文聊透 Linux 缺页异常的处理 —— 图解 Page Faults](https://www.cnblogs.com/binlovetech/p/17918733.html)  
 [Linux Kernel demand paging: mapping anonymous memory into a user process's address space.](https://www.ryanstan.com/linux-demand-paging-anon-memory.html)  
 [Linux内存管理 (19)总结内存管理数据结构和API](https://www.cnblogs.com/arnoldlu/p/8335568.html)  
 [Linux arm64 pte相关宏](https://blog.csdn.net/weixin_45030965/article/details/132905393)  
 [Demystifying Physical Memory Primitive Exploitation on Windows](https://0dr3f.github.io/Demystifying_Physical_Memory_Primitive_Exploitation_on_Windows)  
 [Page Table Walk in Linux](https://stackoverflow.com/questions/46782797/page-table-walk-in-linux)  
+[Memory-Addressing](https://hackmd.io/@gWfpozGfSBWAYoMsnjRDug/H1l1QBR-Jx)
+[proj1筆記](https://hackmd.io/@7ozhamburger/H1ZEPN0ZJe)
