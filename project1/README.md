@@ -1,4 +1,4 @@
-# Linux 作業系統 project1
+# Linux 作業系統 project 1
 
 ## 前置準備
 ### 小組名單 - 第24組
