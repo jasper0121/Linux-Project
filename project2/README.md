@@ -26,7 +26,7 @@
 
 ## 建立自訂syscall並編譯
 :::success
-**更詳細的步驟與介紹請點擊[這裡](https://hackmd.io/jM6pDq8FRdet6oIutCXXAA?view#%E5%BB%BA%E7%AB%8B%E8%87%AA%E8%A8%82syscall%E4%B8%A6%E7%B7%A8%E8%AD%AF)查看上一次的作業內容，這裡會根據本次作業內容簡單帶過。**
+**syscall建立步驟如同上次[作業1](https://hackmd.io/jM6pDq8FRdet6oIutCXXAA?view#%E5%BB%BA%E7%AB%8B%E8%87%AA%E8%A8%82syscall%E4%B8%A6%E7%B7%A8%E8%AD%AF)。**
 :::  
 
 ### 下載 Kernel Source
@@ -41,6 +41,25 @@ wget -P ~/ https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.137.tar.xz
 tar -xvf linux-5.15.137.tar.xz -C /usr/src
 ```
 
+### 安裝Compile工具
+```b
+# 更新本地的軟體包數據庫，使系統獲取最新的軟體包信息
+sudo apt update
+
+# 檢查本地已安裝的軟體包，並嘗試將它們升級到軟體源中可用的最新版本。
+sudo apt upgrade
+
+# build-essential：包含基本編譯工具
+# libncurses-dev：用於控制終端窗口顯示的應用程式
+# libssl-dev：用於開發需要進行加密或使用安全通訊協議（如 HTTPS）的應用程式
+# libelf-dev：用於與 ELF 文件格式相關的開發，比如分析或處理可執行文件、目標文件和共享庫
+# bison 和 flex：語法解析器生成器 and 詞法分析器生成器
+sudo apt install build-essential libncurses-dev libssl-dev libelf-dev bison flex -y
+
+# 清除安裝的package
+sudo apt clean && sudo apt autoremove -y
+```
+
 ### 新增syscall
 ```bash
 # 進入剛載的linux-5.15.137裡面
@@ -52,13 +71,18 @@ mkdir mycall
 
 1. 在mycall底下建立my_wait_queue.c並新增以下code，之後記得存檔  
 :::info  
-[之後再回來補](#Requirement：虛擬地址virtual-address轉實體地址physical-address)
+[Kernel Space 程式碼](#Kernel-Space-程式碼)
 :::  
 
 2. 接著繼續在mycall內新增Makefile
 ```b
 obj-y := my_wait_queue.o # 將my_wait_queue.o編入kernel
 ```
+3. **Makefile是一種用來自動化編譯過程的配置檔案，通常與make工具搭配使用**。Makefile定義如何編譯和鏈接程式碼，以生成可執行檔或其他輸出，並可設定不同的編譯規則和依賴關係。
+4. 以上Makefile指令中：
+    * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被內嵌(linked statically)到內核映像(kernel image)中。
+    * <font color=red>:=</font>是賦值運算符，意思是將右側的值(在此例中是 my_get_physical_addresses.o)賦給左側變數(即 obj-y)。
+    * <font color=red>my_get_physical_addresses.o</font>是一個目標文件，它由相應的源文件(通常是 my_get_physical_addresses.c)經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
 
 ### 修改linux-5.15.137本身的Makefile
 1. 回到/usr/src/linux-5.15.137並找到其底下的Makefile。
@@ -69,6 +93,8 @@ obj-y := my_wait_queue.o # 將my_wait_queue.o編入kernel
 
 修改成：core-y			+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ mycall/
 ```
+4. <font color=red>core-y</font> 是 Linux 核心編譯系統中的一個變數，通常用來定義需要編譯的內核核心部分的子目錄。這些目錄中的代碼會被編譯並靜態鏈接到最終的內核映像中。
+5. 這行指令告訴編譯系統，當編譯 Linux 核心時，還需要編譯這些目錄中的代碼並將它們靜態鏈接到內核映像中。換句話說，kernel/、certs/、mm/、fs/、ipc/、security/ 和 crypto/ 這些目錄中的代碼都是內核核心功能的一部分，它們的內容必須被編譯並最終成為內核的一部分。因此若我們今天要編譯其他自定義內容，就要在後面追加子目錄，即mycall。
 
 ### 將系統調用函數（syscall）的宣告添加到 Linux 核心中
 1. 進到 **/usr/src/linux-5.15.137/include/linux/syscalls.h**
@@ -76,6 +102,7 @@ obj-y := my_wait_queue.o # 將my_wait_queue.o編入kernel
 ```c
 asmlinkage long sys_my_wait_queue(int id);
 ```
+3. **asmlinkage**的意思是告訴編譯器，這個函數的參數是通過**stack**傳遞的，而不是像普通內核函數那樣通過寄存器傳遞。在 Linux 系統調用中，參數必須從用戶空間（user space）傳遞到內核空間（kernel space），並使用stack來傳遞參數。使用 asmlinkage 確保系統調用能正確接收這些參數，並能跨平台運行。基本上要寫syscall的話都要前綴這個關鍵詞。
 
 ### 將syscall加入到kernel的syscall table
 1. 進到 **/usr/src/linux-5.15.137/arch/x86/entry/syscalls/syscall_64.tbl**
@@ -220,51 +247,45 @@ The target output is as follows: threads exit the wait queue in FIFO order.
 > :::  
 :::  
 
-### ==Kernel Space 程式碼==
+### ==Kernel Space 程式碼==  
 ```c=
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/wait.h>
-#include <linux/sched.h>
-#include <linux/uaccess.h>
-#include <linux/syscalls.h>
-#include <linux/mutex.h>
-#include <linux/list.h>
 #include <linux/delay.h>
+#include <linux/wait.h>
+#include <linux/list.h>
+#include <linux/sched.h>
+#include <linux/syscalls.h>
 
-static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue);  // 定義等待隊列頭
-static DEFINE_MUTEX(wait_queue_mutex);         // 定義互斥鎖保護等待隊列
+static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue); // 定義一個全域的等待隊列頭，用於管理所有等待的進程
 
 // enter_wait_queue 函數：將當前 thread 加入等待隊列
 static int enter_wait_queue(void)
 {
     DEFINE_WAIT(wait); // 定義等待隊列元素
-
-    mutex_lock(&wait_queue_mutex); // 獲取互斥鎖
-    pr_info("Thread %d is entering the wait queue\n", current->pid); // 打印進程資訊
-    add_wait_queue_exclusive(&my_wait_queue, &wait); // 將當前進程添加到等待隊列
-    set_current_state(TASK_INTERRUPTIBLE); // 設置進程為可中斷等待狀態
-    mutex_unlock(&wait_queue_mutex); // 釋放互斥鎖
-
+    pr_info("Entering the wait queue thread: %d\n", current->pid); // 打印進程資訊
+    add_wait_queue_exclusive(&my_wait_queue, &wait); // 將當前進程添加到等待隊列的隊尾
+    set_current_state(TASK_INTERRUPTIBLE); // 設置進程為可中斷等待狀態，該進程將進入睡眠，等待被喚醒
     schedule(); // 進程進入睡眠等待喚醒
 
-    return 0; // 喚醒後返回
+    return 0;
 }
 
 // clean_wait_queue 函數：喚醒並移除所有等待隊列中的 thread
 static int clean_wait_queue(void)
 {
-    struct wait_queue_entry *entry, *next;
+    pr_info("-------------------------------------------\n");
 
+    struct wait_queue_entry *entry, *next; // 定義變數來遍歷等待隊列中的節點
+
+    // 遍歷等待隊列，對每個等待節點進行操作，使用 list_for_each_entry_safe 確保在遍歷過程中可以安全地移除節點
     list_for_each_entry_safe(entry, next, &my_wait_queue.head, entry) {
-        struct task_struct *task = entry->private; // 獲取等待進程的 task_struct
-        pr_info("Thread %d is leaving the wait queue\n", task->pid); // 打印進程資訊
-        mutex_lock(&wait_queue_mutex); // 獲取互斥鎖
-        list_del(&entry->entry); // 從等待隊列中移除
+        struct task_struct *task = entry->private; // 指向即將要從wait queue移除的節點
+        pr_info("Leaving the wait queue thread: %d\n", task->pid);
+        list_del(&entry->entry); // 從等待隊列中移除當前節點
         wake_up_process(task); // 喚醒等待進程
-        mutex_unlock(&wait_queue_mutex); // 釋放互斥鎖
-        msleep(1000); // 休息 1 秒
+        msleep(1500); // 休息 1.5 秒
     }
 
     return 0;
@@ -283,6 +304,7 @@ SYSCALL_DEFINE1(my_wait_queue, int, id)
     }
 }
 ```
+
 :::info  
 **想查看kernel訊息等相關指令(如上述執行結果)的話可輸入以下指令**
 ```bash
@@ -296,10 +318,32 @@ sudo watch -n0.1 dmesg
 sudo dmesg -C
 ```
 :::  
-### 執行結果  
-![image](https://hackmd.io/_uploads/HkkRg8KE1x.png)  
 
+1. [**DEFINE_WAIT**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/wait.h#L1180)：定義wait queue節點。  
+2. [**add_wait_queue_exclusive**](https://elixir.bootlin.com/linux/v5.15.137/source/kernel/sched/wait.c#L29)：實際上內部會執行__add_wait_queue_entry_tail，將節點加入wait queue的最後面。  
+3. **set_current_state(TASK_INTERRUPTIBLE)**：將當前進程設置為可中斷的等待狀態(TASK_INTERRUPTIBLE)，進程此時會處於「睡眠」狀態，表示暫時不需要CPU資源，直到被喚醒。  
+4. **schedule()**：讓出 CPU，讓當前進程停止執行，進入調度器，並允許其他進程執行。  
+5. [**list_for_each_entry_safe**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/list.h#L725)：從頭開始安全遍歷wait queue，保證過程中即使刪除節點，也能保證遍歷正常進行。  
+    ```c
+    /**
+     * list_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+     * @pos:	the type * to use as a loop cursor.
+     * @n:		another type * to use as temporary storage
+     * @head:	the head for your list.
+     * @member:	the name of the list_head within the struct.
+     */
+    #define list_for_each_entry_safe(pos, n, head, member)	\
+        for (pos = list_first_entry(head, typeof(*pos), member),	\
+            n = list_next_entry(pos, member);			\
+             !list_entry_is_head(pos, head, member); 		\
+             pos = n, n = list_next_entry(n, member))
+    ```
+6. [**list_del**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/list.h#L138)：將當前遍歷到的節點從wait queue中移除。
+7. [**wake_up_process**](https://elixir.bootlin.com/linux/v5.15.137/source/kernel/sched/core.c#L4209)：喚醒指定進程(task)，讓其從睡眠狀態恢復到可執行狀態(TASK_RUNNING)，並加入到run queue中。
 
+### 執行結果(FIFO)  
+根據執行結果可以發現，進出的順序有按照FIFO。  
+![image](https://hackmd.io/_uploads/rJuGg59B1e.png)  
 
 ### ==User Space 程式碼==
 ```c=
@@ -358,9 +402,7 @@ int main()
 
 ```
 :::info  
-**編譯與執行的指令如下，或是直接vscode右上角的執行按鍵**
-![image](https://hackmd.io/_uploads/ryWrHie-kx.png)
-
+**編譯與執行的指令如下**
 ```b
 # gcc -o 編譯出來的檔案名 編譯程式碼.c，以下指令是舉例
 gcc -o user_space user_space.c
@@ -370,19 +412,15 @@ gcc -o user_space user_space.c
 ```
 :::  
 
-### 執行結果
-![image](https://hackmd.io/_uploads/Hk89o7uE1l.png)
-
-
+### 執行結果 (FIFO)  
+根據kernel space的執行結果，**process從wait queue出來的順序確實有按照FIFO**，但從wait queue出來到在user space印出的過程中，仍然可能會因為CPU排程而使得在user space印出的順序不一定照順序，因此在list_for_each_entry_safe中加入msleep，讓每個process之間的間隔時間長一點來解決在user space中印出的問題。  
+![image](https://hackmd.io/_uploads/Syi0y99Bkl.png)
 
 ---
 
 ## Project 遇到的問題
-add_wait_queue_exclusive獨佔與否差別(flag的差異)？
-
-list_del和wake_up_process執行順序相反，user space執行石容易當機，原因？
-
-kernel space確定是FIFO，但從kernel出來到user space印出這段期間，可能因為CPU排程的關係，導致在user space印出的順序不是FIFO。除了在kernel端使用sleep的方式外，還有沒有其他更好的方法？
+**Q**：在kernel space的clean_wait_queue當中，list_for_each_entry_safe迴圈內**若先執行wake_up_process(task)再執行list_del(&entry->entry)**，則user space在調用此函式時會當機；反之則執行正常。  
+**Ans**：在執行完wake_up_process(task)後，process會被喚醒並進入run queue，但在還未執行list_del(&entry->entry)之前，該process仍位於wait queue。也就是說，process會有一小段時間同時在wait queue和run queue當中，導致產生像sleep_on()一樣的race condition。因此必須要先把process從wait queue移出後再執行喚醒，user space的執行才能順利進行。
 
 ---
 
