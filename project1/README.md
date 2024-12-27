@@ -15,12 +15,14 @@
 * Kernel 版本：5.15.137
 * 記憶體：16GB
 
-### 想要用superuser權限的vscode開發的話
-:::info  
-```
-sudo code --no-sandbox --user-data-dir
-```
-:::
+### 想要用vscode開發的話
+1. 在虛擬機內搜尋[vscode(點擊此連結)](https://code.visualstudio.com/Download)，並**點選.deb(Debian, Ubuntu)按鈕**來下載。
+2. 想要用superuser權限的vscode開發的話，可在cmd輸入以下指令：  
+    :::info  
+    ```
+    sudo code --no-sandbox --user-data-dir
+    ```
+    :::
 
 ## 建立自訂syscall並編譯
 ### 下載 Kernel Source
@@ -301,7 +303,6 @@ SYSCALL_DEFINE1(my_get_physical_addresses, unsigned long __user *, usr_ptr) {
     * **pte_val(*pte)**：這個function會將整個 PTE 數值提取出來，但 PTE 中包含了低位的控制位，這會導致後面計算的 page address錯誤。
     * PTE架構圖  
     ![image](https://0dr3f.github.io/images/Pasted%20image%2020240925104151.png)
-
 
 ### 執行結果
 下圖顯示從虛擬地址轉成實體地址過程中的各種基址，若有任何層轉換出現問題則顯示Invalid。
