@@ -22,7 +22,7 @@
     ```
     sudo code --no-sandbox --user-data-dir
     ```
-    :::
+    :::  
 
 ## 建立自訂syscall並編譯
 :::success
@@ -175,7 +175,7 @@ sudo reboot
 ![image](https://hackmd.io/_uploads/HJkN9nUxkg.png)  
 
 :::info  
-補充：若reboot沒有出現以上選單畫面需輸入
+補充：若reboot沒有出現以上選單畫面需輸入  
 ```
 vim /etc/default/grub
 ```
@@ -434,7 +434,6 @@ int main()
 
     return 0;
 }
-
 ```
 :::info  
 **編譯與執行的指令如下**
@@ -455,7 +454,7 @@ gcc -o user_space user_space.c
 
 ## Project 遇到的問題
 **Q**：在kernel space的clean_wait_queue當中，list_for_each_entry_safe迴圈內**若改成先執行wake_up_process(task)再執行list_del(&entry->entry)**，則user space在調用此函式時會當機；反之則正常執行。  
-**Ans**：在執行完wake_up_process(task)後，process會被喚醒並進入run queue，但在還未執行list_del(&entry->entry)之前，該process仍位於wait queue。也就是說，<font color=red>**process會有一小段時間同時在wait queue和run queue當中</font>，如同上課提到sleep_on()的race condition也可能會產生這種狀況**。因此必須要先把process從wait queue移出後再執行喚醒，user space的執行才能順利進行。
+**Ans**：在執行完wake_up_process(task)後，process會被喚醒並進入run queue，但在還未執行list_del(&entry->entry)之前，該process仍位於wait queue。也就是說，<font color=red>**process會有一小段時間同時在wait queue和run queue當中</font>，如同上課提到sleep_on()的race condition也可能會產生這種狀況**。因此必須要先把process從wait queue移出後再執行喚醒，user space的執行才能順利進行。  
 
 ---
 
@@ -468,3 +467,4 @@ gcc -o user_space user_space.c
 [linux内核中的等待队列的基本操作](https://blog.51cto.com/weiguozhihui/1566704)  
 [进程调度API之add_wait_queue_exclusive](https://blog.csdn.net/tiantao2012/article/details/78791339)  
 [Linux 内核等待队列 --- wait_queue_head --- wait_event_interruptible](https://blog.csdn.net/wenjin359/article/details/83002379)  
+[Wait Queue (等待隊列)筆記整理](https://hackmd.io/@gWfpozGfSBWAYoMsnjRDug/H1PaETRrkg)  
