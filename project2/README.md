@@ -81,8 +81,8 @@ obj-y := my_wait_queue.o # 將my_wait_queue.o編入kernel
 3. **Makefile是一種用來自動化編譯過程的配置檔案，通常與make工具搭配使用**。Makefile定義如何編譯和鏈接程式碼，以生成可執行檔或其他輸出，並可設定不同的編譯規則和依賴關係。
 4. 以上Makefile指令中：
     * <font color=red>obj-y</font>是用於內核編譯系統中的一個變數，它表示某個 .o 文件（即編譯後的目標文件）會被內嵌(linked statically)到內核映像(kernel image)中。
-    * <font color=red>:=</font>是賦值運算符，意思是將右側的值(在此例中是 my_get_physical_addresses.o)賦給左側變數(即 obj-y)。
-    * <font color=red>my_get_physical_addresses.o</font>是一個目標文件，它由相應的源文件(通常是 my_get_physical_addresses.c)經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
+    * <font color=red>:=</font>是賦值運算符，意思是將右側的值(my_wait_queue.o)賦給左側變數(obj-y)。
+    * <font color=red>my_wait_queue.o</font>是一個目標文件，它由相應的源文件(通常是 my_wait_queue.c)經過編譯後生成。.o 文件是編譯過程中的中間產物，代表編譯後的二進制對象。
 
 ### 修改linux-5.15.137本身的Makefile
 1. 回到/usr/src/linux-5.15.137並找到其底下的Makefile。
@@ -160,9 +160,11 @@ make -j12
 
 5. 在 Linux 系統上安裝編譯過的內核模組，並且通過並行處理來提高安裝速度。執行**make modules_install -j12**後，內核模組會被安裝到 /lib/modules/ 目錄下，這樣系統就可以在啟動時或運行時加載這些模組以支持相關的硬體和功能。
 ```bash!
+# 安裝編譯好的核心模組到系統的模組路徑中
 sudo make modules_install -j12
 
 # 上面指令跑完後沒有出現錯誤訊息，就可以繼續安裝kernel。
+# 此命令的作用是安裝編譯好的核心和相關文件到系統的啟動目錄中，準備讓新的核心可以被啟動。
 sudo make install -j12
 
 # 重新啟動
@@ -245,6 +247,11 @@ The target output is as follows: threads exit the wait queue in FIFO order.
 > You can use kernel-provided wait queue related functions to implement this functionality.
 > You need to declare a <font color=red>my_wait_queue</font> in kernel space.
 > :::  
+
+---
+
+**User Space**  
+Except for <font color=red>syscall(xxx, 1);</font> and <font color=red>syscall(yyy, 2);</font> , please do not modify any other parts of the code.  
 :::  
 
 ### ==Kernel Space 程式碼==  
@@ -258,37 +265,37 @@ The target output is as follows: threads exit the wait queue in FIFO order.
 #include <linux/sched.h>
 #include <linux/syscalls.h>
 
-static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue); // 定義一個全域的等待隊列頭，用於管理所有等待的進程
+static DECLARE_WAIT_QUEUE_HEAD(my_wait_queue); // 定義一個全域的wait queue頭，用於管理所有等待的進程
 
-// enter_wait_queue 函數：將當前 thread 加入等待隊列
+// enter_wait_queue 函數：將當前 thread 加入wait queue
 static int enter_wait_queue(void)
 {
-    DEFINE_WAIT(wait); // 定義等待隊列元素
+    DEFINE_WAIT(wait); // 定義wait queue元素
     pr_info("Entering the wait queue thread: %d\n", current->pid); // 打印進程資訊
-    add_wait_queue_exclusive(&my_wait_queue, &wait); // 將當前進程添加到等待隊列的隊尾
+    add_wait_queue_exclusive(&my_wait_queue, &wait); // 將當前進程添加到wait queue的隊尾
     set_current_state(TASK_INTERRUPTIBLE); // 設置進程為可中斷等待狀態，該進程將進入睡眠，等待被喚醒
     schedule(); // 進程進入睡眠等待喚醒
-
-    return 0;
+    
+    return 1;
 }
 
-// clean_wait_queue 函數：喚醒並移除所有等待隊列中的 thread
+// clean_wait_queue 函數：喚醒並移除所有wait queue中的 thread
 static int clean_wait_queue(void)
 {
     pr_info("-------------------------------------------\n");
 
-    struct wait_queue_entry *entry, *next; // 定義變數來遍歷等待隊列中的節點
+    struct wait_queue_entry *entry, *next; // 定義變數來遍歷wait queue中的節點
 
-    // 遍歷等待隊列，對每個等待節點進行操作，使用 list_for_each_entry_safe 確保在遍歷過程中可以安全地移除節點
+    // 遍歷wait queue，對每個節點進行操作，使用 list_for_each_entry_safe 確保在遍歷過程中可以安全地移除節點
     list_for_each_entry_safe(entry, next, &my_wait_queue.head, entry) {
         struct task_struct *task = entry->private; // 指向即將要從wait queue移除的節點
         pr_info("Leaving the wait queue thread: %d\n", task->pid);
-        list_del(&entry->entry); // 從等待隊列中移除當前節點
+        list_del(&entry->entry); // 從wait queue中移除當前節點
         wake_up_process(task); // 喚醒等待進程
         msleep(1500); // 休息 1.5 秒
     }
 
-    return 0;
+    return 1;
 }
 
 // 系統呼叫實作
@@ -300,7 +307,7 @@ SYSCALL_DEFINE1(my_wait_queue, int, id)
     case 2:
         return clean_wait_queue(); // ID 為 2，執行 clean_wait_queue
     default:
-        return -EINVAL; // 無效 ID
+        return 0; // 無效 ID
     }
 }
 ```
@@ -321,9 +328,36 @@ sudo dmesg -C
 
 1. [**DEFINE_WAIT**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/wait.h#L1180)：定義wait queue節點。  
 2. [**add_wait_queue_exclusive**](https://elixir.bootlin.com/linux/v5.15.137/source/kernel/sched/wait.c#L29)：實際上內部會執行__add_wait_queue_entry_tail，將節點加入wait queue的最後面。  
-3. **set_current_state(TASK_INTERRUPTIBLE)**：將當前進程設置為可中斷的等待狀態(TASK_INTERRUPTIBLE)，進程此時會處於「睡眠」狀態，表示暫時不需要CPU資源，直到被喚醒。  
-4. **schedule()**：讓出 CPU，讓當前進程停止執行，進入調度器，並允許其他進程執行。  
-5. [**list_for_each_entry_safe**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/list.h#L725)：從頭開始安全遍歷wait queue，保證過程中即使刪除節點，也能保證遍歷正常進行。  
+3. **set_current_state(TASK_INTERRUPTIBLE)**：將當前進程設置為可中斷的等待狀態(TASK_INTERRUPTIBLE)，進程此時會處於睡眠狀態，表示暫時不需要CPU資源直到被喚醒。  
+4. [**schedule()**](https://elixir.bootlin.com/linux/v3.9/source/kernel/sched/core.c#L2966)：讓出 CPU，讓當前進程停止執行，進入調度器，並允許其他進程執行。以下是其程式碼，他會再呼叫__schedule()來執行。
+    ```c 
+    asmlinkage void __sched schedule(void)
+        {
+            struct task_struct *tsk = current;
+
+            sched_submit_work(tsk);
+            __schedule();
+        }
+        EXPORT_SYMBOL(schedule);
+    ```
+    [**__schedule()**](https://elixir.bootlin.com/linux/v3.9/source/kernel/sched/core.c#L2875)：裡面會執行context_switch()，保存當前進程的 CPU 狀態，並加載下一個進程的狀態。以下是程式碼中的片段。  
+    ```c
+	if (likely(prev != next)) {
+            rq->nr_switches++;
+            rq->curr = next;
+            ++*switch_count;
+
+            context_switch(rq, prev, next); /* unlocks the rq */
+            /*
+             * The context switch have flipped the stack from under us
+             * and restored the local variables which were saved when
+             * this task called schedule() in the past. prev == current
+             * is still correct, but it can be moved to another cpu/rq.
+             */
+            cpu = smp_processor_id();
+            rq = cpu_rq(cpu);
+    ```
+5. [**list_for_each_entry_safe**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/list.h#L725)：從頭開始安全遍歷wait queue，保證過程中即使刪除節點，也能保證遍歷正常進行。其內部的程式碼如下。
     ```c
     /**
      * list_for_each_entry_safe - iterate over list of given type safe against removal of list entry
@@ -339,7 +373,8 @@ sudo dmesg -C
              pos = n, n = list_next_entry(n, member))
     ```
 6. [**list_del**](https://elixir.bootlin.com/linux/v5.15.137/source/include/linux/list.h#L138)：將當前遍歷到的節點從wait queue中移除。
-7. [**wake_up_process**](https://elixir.bootlin.com/linux/v5.15.137/source/kernel/sched/core.c#L4209)：喚醒指定進程(task)，讓其從睡眠狀態恢復到可執行狀態(TASK_RUNNING)，並加入到run queue中。
+7. [**wake_up_process**](https://elixir.bootlin.com/linux/v5.15.137/source/kernel/sched/core.c#L4209)：喚醒指定進程(task)，讓其從睡眠狀態恢復到可執行狀態(TASK_RUNNING)，並加入到run queue中。  
+8. **msleep**：每次迭代間隔一些時間，以毫秒為單位。
 
 ### 執行結果(FIFO)  
 根據執行結果可以發現，進出的順序有按照FIFO。  
@@ -413,16 +448,23 @@ gcc -o user_space user_space.c
 :::  
 
 ### 執行結果 (FIFO)  
-根據kernel space的執行結果，**process從wait queue出來的順序確實有按照FIFO**，但從wait queue出來到在user space印出的過程中，仍然可能會因為CPU排程而使得在user space印出的順序不一定照順序，因此在list_for_each_entry_safe中加入msleep，讓每個process之間的間隔時間長一點來解決在user space中印出的問題。  
+根據kernel space的執行結果，**process從wait queue出來的順序確實有按照FIFO**，但從wait queue出來到在user space印出的這段過程中，仍然可能會因為CPU排程而使得在user space印出的順序不一定照順序，因此**在list_for_each_entry_safe中加入msleep，讓每個process之間的間隔時間長一點來解決在user space中印出的問題。**  
 ![image](https://hackmd.io/_uploads/Syi0y99Bkl.png)
 
 ---
 
 ## Project 遇到的問題
-**Q**：在kernel space的clean_wait_queue當中，list_for_each_entry_safe迴圈內**若先執行wake_up_process(task)再執行list_del(&entry->entry)**，則user space在調用此函式時會當機；反之則執行正常。  
-**Ans**：在執行完wake_up_process(task)後，process會被喚醒並進入run queue，但在還未執行list_del(&entry->entry)之前，該process仍位於wait queue。也就是說，process會有一小段時間同時在wait queue和run queue當中，導致產生像sleep_on()一樣的race condition。因此必須要先把process從wait queue移出後再執行喚醒，user space的執行才能順利進行。
+**Q**：在kernel space的clean_wait_queue當中，list_for_each_entry_safe迴圈內**若改成先執行wake_up_process(task)再執行list_del(&entry->entry)**，則user space在調用此函式時會當機；反之則正常執行。  
+**Ans**：在執行完wake_up_process(task)後，process會被喚醒並進入run queue，但在還未執行list_del(&entry->entry)之前，該process仍位於wait queue。也就是說，<font color=red>**process會有一小段時間同時在wait queue和run queue當中</font>，如同上課提到sleep_on()的race condition也可能會產生這種狀況**。因此必須要先把process從wait queue移出後再執行喚醒，user space的執行才能順利進行。
 
 ---
 
 ## Reference
-[linux等待队列wait queue](https://blog.csdn.net/q2519008/article/details/123816780)
+[等待队列（一）](https://www.cnblogs.com/zhuyp1015/archive/2012/06/09/2542882.html)  
+[linux等待队列wait queue](https://blog.csdn.net/q2519008/article/details/123816780)  
+[Linux等待队列（Wait Queue）](https://www.cnblogs.com/hueyxu/p/13745029.html)  
+[Process State 與 Wait Queue](https://hackmd.io/@MEME48/Hy65Z5A_h)  
+[Linux kernel 的 wait queue 機制](https://www.readfog.com/a/1704747462120542208)  
+[linux内核中的等待队列的基本操作](https://blog.51cto.com/weiguozhihui/1566704)  
+[进程调度API之add_wait_queue_exclusive](https://blog.csdn.net/tiantao2012/article/details/78791339)  
+[Linux 内核等待队列 --- wait_queue_head --- wait_event_interruptible](https://blog.csdn.net/wenjin359/article/details/83002379)  
